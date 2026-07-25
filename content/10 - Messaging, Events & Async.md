@@ -25,6 +25,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[07 - Transactions & Data Consistency]], [[13 - Resilience & Production Readiness]]
 
+![[transactional-outbox.gif|720]]
+
+*The dual-write problem: a crash between the DB commit and the broker publish loses the event — the outbox pattern commits both rows in one local transaction and relays the second one after.*
+
 ---
 
 ## 1. Three mechanisms, one question: what's the coupling boundary?

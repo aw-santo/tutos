@@ -22,6 +22,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[06 - Data Access with Spring Data JPA]], [[13 - Resilience & Production Readiness]]
 
+![[cache-stampede.gif|720]]
+
+*A hot key's TTL expires and every concurrent reader falls through at once — the stampede `sync = true` prevents by letting one caller refill it while the rest wait.*
+
 ---
 
 ## 1. The abstraction: caching as an aspect, not a data structure

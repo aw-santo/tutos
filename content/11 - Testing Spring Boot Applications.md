@@ -23,6 +23,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[06 - Data Access with Spring Data JPA]], [[08 - Spring Security]]
 
+![[test-context-cache.gif|720]]
+
+*Two test classes with the same config fingerprint share one cached context; a config drift — or a stray `@DirtiesContext` — builds a new one and quietly triples the suite's runtime.*
+
 ---
 
 ## 1. The test pyramid, applied to Spring

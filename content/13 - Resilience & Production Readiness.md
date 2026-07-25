@@ -24,6 +24,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[10 - Messaging, Events & Async]], [[12 - Actuator, Metrics & Observability]], [[05 - Web Layer & Embedded Servers - MVC vs WebFlux]]
 
+![[circuit-breaker.gif|720]]
+
+*Closed counts failures and lets calls through; past the threshold it trips open and fails fast; half-open lets a few trial calls decide whether to close the loop again.*
+
 ---
 
 ## 1. The concept: control failure, don't inherit it

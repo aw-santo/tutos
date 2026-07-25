@@ -417,6 +417,513 @@ def build_startup():
     save_gif(frames, out("startup-jit-vs-native.gif"), frame_ms=60)
 
 
+# ---------------------------------------------------------------------------
+# 03 — Config precedence: env var beats the profile file beats application.yml
+# ---------------------------------------------------------------------------
+def build_config():
+    frames = []
+    sources = [
+        ("CLI args", "(none set)", GRAY),
+        ("System props", "(none set)", GRAY),
+        ("OS env vars", "SERVER_PORT=9000", TANG),
+        ("application-prod.yml", "server.port=8080", SKY),
+        ("application.yml", "server.port=8081", GRAY),
+    ]
+    x, w, h, gap = 320, 400, 62, 14
+    top = 110
+
+    def card_y(i): return top + i * (h + gap)
+
+    def base(c, lit=None, dim=None):
+        c.header("3", "Property-source precedence", TANG)
+        c.text(x + w / 2, 90, "highest priority", size=11, weight="Medium", fill=SUB, anchor="mm")
+        for i, (name, val, pal) in enumerate(sources):
+            y = card_y(i)
+            active = (lit is not None and i == lit)
+            faded = (dim is not None and i > dim)
+            fill = mix("#FFFFFF", MINT["soft"], 1.0) if active else ("#F3F5F8" if faded else "#FFFFFF")
+            line = MINT["bold"] if active else (HAIR if faded else pal["bold"])
+            c.card(x, y, w, h, fill=fill, line=line, r=10, shadow=not faded)
+            tcol = FAINT if faded else INK
+            c.text(x + 16, y + 20, name, size=13, weight="Semibold", fill=tcol, anchor="lm")
+            c.text(x + 16, y + 44, val, size=12, weight="Regular", fill=(MINT["bold"] if active else (FAINT if faded else SUB)), anchor="lm")
+            if active:
+                c.text(x + w - 16, y + h / 2, "✓", size=20, weight="Bold", fill=MINT["bold"], anchor="rm")
+            if faded:
+                c.text(x + w - 16, y + h / 2, "✗", size=16, weight="Bold", fill=FAINT, anchor="rm")
+
+    # SCENE 1 — a lookup packet drops down the stack, checking each source
+    path = [((x + w / 2, card_y(i) + h / 2), (x + w / 2, card_y(i + 1) + h / 2)) for i in range(4)]
+    for t in eseq(60):
+        c = Canvas(style="playful")
+        stage = t * 3  # reaches env-var card (index 2) at t=1.0
+        lit_idx = min(2, int(stage))
+        base(c)
+        px, py = seg_point(path[:3], t)
+        c.glow(px, py, TANG["bold"])
+        c.footer("Spring reads server.port top-down and stops at the first source that sets it.", TANG, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — settle: env var wins, the file below is unreached
+    for t in eseq(34):
+        c = Canvas(style="playful")
+        base(c, lit=2, dim=2)
+        c.text(x + w / 2, card_y(4) + h + 40, "Effective: 9000  (8080 in the file never applies)",
+               size=14, weight="Semibold", fill=mix("#FFFFFF", TANG["bold"], min(1.0, t * 2)), anchor="mm")
+        c.footer("The env var outranks the profile file — no error, no warning, just silence.", TANG, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("config-precedence.gif"), frame_ms=65)
+
+
+# ---------------------------------------------------------------------------
+# 04 — DTOs strip over-posted fields; binding the entity directly lets them through
+# ---------------------------------------------------------------------------
+def build_dto():
+    frames = []
+    src = (400, 130, 240, 70)
+    wrong_e = (120, 320, 220, 100)
+    right_dto = (700, 300, 220, 70)
+    right_e = (700, 420, 220, 90)
+
+    def base(c):
+        c.header("4", "DTO binding vs. binding the entity", CORAL)
+        c.card(*src, fill=GRAY["soft"], line=GRAY["bold"], r=10)
+        c.text(src[0] + src[2] / 2, src[1] + 22, "incoming JSON", size=12, weight="Semibold", fill=INK, anchor="mm")
+        c.text(src[0] + src[2] / 2, src[1] + 46, '{ role: "ADMIN", ... }', size=11.5, weight="Regular", fill=SUB, anchor="mm")
+        c.tag(wrong_e[0] + 60, wrong_e[1] - 22, "WRONG — bind Order entity")
+        c.tag(right_dto[0] + 40, right_dto[1] - 22, "RIGHT — bind CreateOrderRequest DTO")
+        c.line(src[0], src[1] + src[3] * 0.8, wrong_e[0] + wrong_e[2] / 2, wrong_e[1], fill=HAIR)
+        c.line(src[0] + src[2], src[1] + src[3] * 0.8, right_dto[0] + right_dto[2] / 2, right_dto[1], fill=HAIR)
+
+    # SCENE 1 — packet splits into two lanes
+    seg_wrong = [((src[0] + 40, src[1] + src[3]), (wrong_e[0] + wrong_e[2] / 2, wrong_e[1]))]
+    seg_right = [((src[0] + src[2] - 40, src[1] + src[3]), (right_dto[0] + right_dto[2] / 2, right_dto[1]))]
+    for t in eseq(30):
+        c = Canvas(style="playful"); base(c)
+        c.glow(*seg_point(seg_wrong, t), CORAL["bold"])
+        c.glow(*seg_point(seg_right, t), MINT["bold"])
+        c.footer("The same request body, bound two different ways.", CORAL, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — wrong lane: role passes through unfiltered; right lane: DTO drops it
+    for t in eseq(40):
+        c = Canvas(style="playful"); base(c)
+        c.card(*wrong_e, fill=CORAL["soft"], line=CORAL["bold"], r=10)
+        c.text(wrong_e[0] + wrong_e[2] / 2, wrong_e[1] + 26, "Order entity", size=12.5, weight="Semibold", fill=CORAL["ink"], anchor="mm")
+        role_y = wrong_e[1] + 26 + 32 * ease(t)
+        c.text(wrong_e[0] + wrong_e[2] / 2, min(role_y, wrong_e[1] + wrong_e[3] - 16), 'role = "ADMIN"',
+               size=12, weight="Bold", fill=CORAL["bold"], anchor="mm")
+        c.card(*right_dto, fill=MINT["soft"], line=MINT["bold"], r=10)
+        c.text(right_dto[0] + right_dto[2] / 2, right_dto[1] + right_dto[3] / 2, "CreateOrderRequest", size=12.5, weight="Semibold", fill=MINT["ink"], anchor="mm")
+        drop = ease(t)
+        drop_y = right_dto[1] + right_dto[3] + 10 + 26 * drop
+        opac = max(0.0, 1.0 - drop * 1.4)
+        if opac > 0.05:
+            c.text(right_dto[0] + right_dto[2] / 2, drop_y, 'role = "ADMIN"  ✗',
+                   size=11.5, weight="Medium", fill=mix("#FFFFFF", CORAL["bold"], opac), anchor="mm")
+        c.card(*right_e, fill="#FFFFFF", line=MINT["bold"], r=10, shadow=False)
+        c.text(right_e[0] + right_e[2] / 2, right_e[1] + 22, "Order entity", size=12, weight="Semibold", fill=INK, anchor="mm")
+        c.text(right_e[0] + right_e[2] / 2, right_e[1] + 48, "customerRef, items only", size=11, weight="Regular", fill=MINT["bold"], anchor="mm")
+        c.footer("A DTO only has the fields you declared — there's no `role` to bind.", MINT, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("dto-vs-entity.gif"), frame_ms=70)
+
+
+# ---------------------------------------------------------------------------
+# 07 — A checked exception mid-transaction commits the half-done work
+# ---------------------------------------------------------------------------
+def build_rollback():
+    frames = []
+    steps = ["debit(A)", "checkBalance()", "throw InsufficientFundsException", "credit(B)"]
+    rail_x, rail_y, rail_w = 140, 230, 760
+    boundary = (100, 150, 840, 340)
+
+    def base(c, boundary_label="@Transactional", boundary_pal=SKY):
+        c.header("7", "Checked exceptions don't roll back by default", CORAL)
+        c.card(*boundary, fill=boundary_pal["soft"], line=boundary_pal["bold"], r=16)
+        c.text(boundary[0] + 20, boundary[1] + 24, boundary_label, size=13, weight="Semibold", fill=boundary_pal["ink"], anchor="lm")
+        for i, s in enumerate(steps):
+            sx = rail_x + i * (rail_w / (len(steps) - 1))
+            c.dot(sx, rail_y, 5, fill=HAIR)
+            c.text(sx, rail_y + 26, s, size=10.5, weight="Medium", fill=SUB, anchor="mm")
+        c.line(rail_x, rail_y, rail_x + rail_w, rail_y, fill=HAIR)
+        c.card(240, 400, 220, 90, fill="#FFFFFF", line=MINT["bold"], r=10, shadow=False)
+        c.card(560, 400, 220, 90, fill="#FFFFFF", line=MINT["bold"], r=10, shadow=False)
+
+    def balances(c, a, b):
+        c.text(240 + 110, 424, "Account A", size=12, weight="Semibold", fill=INK, anchor="mm")
+        c.text(240 + 110, 456, f"${a:.0f}", size=18, weight="Bold", fill=(CORAL["bold"] if a < 100 else INK), anchor="mm")
+        c.text(560 + 110, 424, "Account B", size=12, weight="Semibold", fill=INK, anchor="mm")
+        c.text(560 + 110, 456, f"${b:.0f}", size=18, weight="Bold", fill=INK, anchor="mm")
+
+    # SCENE 1 — execution runs the rail: debit succeeds, throw hits, credit never runs
+    for t in eseq(56):
+        c = Canvas(style="playful"); base(c)
+        prog = t * 3  # 3 segments across 4 steps
+        idx = min(3, int(prog) + 1)
+        for i in range(idx):
+            sx0 = rail_x + i * (rail_w / (len(steps) - 1))
+            sx1 = rail_x + (i + 1) * (rail_w / (len(steps) - 1))
+            frac = 1.0 if i < int(prog) else (prog - int(prog))
+            c.line(sx0, rail_y, sx0 + (sx1 - sx0) * frac, rail_y, fill=CORAL["bold"], width=3)
+        a = 100 - 100 * min(1.0, prog)
+        balances(c, a, 50)
+        if prog >= 2.0:
+            bolt_t = min(1.0, prog - 2.0)
+            c.text(rail_x + 2 * (rail_w / 3), rail_y - 24, "✗ throws", size=13, weight="Bold",
+                   fill=mix("#FFFFFF", CORAL["bold"], bolt_t), anchor="mm")
+        c.footer("debit(A) runs, the exception fires, credit(B) never executes.", CORAL, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — the transaction still commits: $50 is gone, nowhere
+    for t in eseq(40):
+        c = Canvas(style="playful"); base(c, boundary_label="@Transactional  →  COMMIT", boundary_pal=CORAL)
+        for i in range(3):
+            sx0 = rail_x + i * (rail_w / (len(steps) - 1))
+            sx1 = rail_x + (i + 1) * (rail_w / (len(steps) - 1))
+            c.line(sx0, rail_y, sx1, rail_y, fill=(CORAL["bold"] if i < 2 else HAIR), width=3)
+        balances(c, 0, 50)
+        ghost = ease(t)
+        c.text(400, 330, "$50 vanished — checked exceptions don't trigger rollback",
+               size=13, weight="Semibold", fill=mix("#FFFFFF", CORAL["bold"], ghost), anchor="mm")
+        c.footer("Fix: rollbackFor = Exception.class, or throw an unchecked exception.", CORAL, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("transaction-rollback.gif"), frame_ms=65)
+
+
+# ---------------------------------------------------------------------------
+# 09 — Cache stampede on TTL expiry, and sync=true fixing it
+# ---------------------------------------------------------------------------
+def build_cache_stampede():
+    frames = []
+    cache = (430, 180, 200, 110)
+    db = (430, 420, 200, 90)
+    clients = [(140, 160), (140, 260), (140, 360), (860, 160), (860, 260), (860, 360)]
+
+    def base(c, ttl_frac, title="Cache stampede on expiry"):
+        c.header("9", title, TANG)
+        c.card(*cache, fill=TANG["soft"], line=TANG["bold"], r=12)
+        c.text(cache[0] + cache[2] / 2, cache[1] + 26, "product-42", size=13, weight="Semibold", fill=TANG["ink"], anchor="mm")
+        bar_w = cache[2] - 30
+        c.card(cache[0] + 15, cache[1] + 50, bar_w, 10, fill="#FFFFFF", line=HAIR, r=5, shadow=False)
+        c.card(cache[0] + 15, cache[1] + 50, bar_w * max(0, ttl_frac), 10, fill=MINT["bold"], line=None, r=5, shadow=False)
+        c.text(cache[0] + cache[2] / 2, cache[1] + 78, f"TTL {'expired' if ttl_frac <= 0 else f'{int(ttl_frac*100)}%'}",
+               size=10.5, weight="Medium", fill=(CORAL["bold"] if ttl_frac <= 0 else SUB), anchor="mm")
+        c.icon_db(db[0] + db[2] / 2, db[1] + db[3] / 2, 90, GRAY["bold"])
+        c.text(db[0] + db[2] / 2, db[1] + db[3] + 22, "database", size=11, weight="Medium", fill=SUB, anchor="mm")
+        for cx, cy in clients:
+            c.dot(cx, cy, 6, fill=SKY["bold"])
+
+    # SCENE 1 — steady traffic hits the cache while TTL counts down
+    for t in eseq(40):
+        c = Canvas(style="playful")
+        ttl = 1.0 - t
+        base(c, ttl)
+        for cx, cy in clients:
+            c.dashed(cx, cy, cache[0] + cache[2] / 2, cache[1] + cache[3] / 2, fill=HAIR, dash=6, gap=5)
+        c.footer("Every request hits the cache — the database stays quiet.", TANG, step=0, total=3)
+        frames.append(c.img)
+
+    # SCENE 2 — TTL hits zero: everyone falls through to the DB at once
+    for t in eseq(40):
+        c = Canvas(style="playful")
+        base(c, 0)
+        for cx, cy in clients:
+            px, py = seg_point([((cx, cy), (db[0] + db[2] / 2, db[1] + db[3] / 2))], min(1.0, t * 1.3))
+            c.glow(px, py, CORAL["bold"])
+        overload = ease(t)
+        c.card(db[0] - 10, db[1] - 10, db[2] + 20, db[3] + 20, fill=None, line=mix(HAIR, CORAL["bold"], overload), width=3, r=14, shadow=False)
+        c.footer("The herd: six requests, six identical cache misses, one overloaded database.", CORAL, step=1, total=3)
+        frames.append(c.img)
+
+    # SCENE 3 — replay with sync=true: one leader, the rest wait
+    for t in eseq(40):
+        c = Canvas(style="playful")
+        base(c, 0, title="Fixed with @Cacheable(sync = true)")
+        leader = clients[0]
+        px, py = seg_point([((leader[0], leader[1]), (db[0] + db[2] / 2, db[1] + db[3] / 2))], min(1.0, t * 1.4))
+        c.glow(px, py, MINT["bold"])
+        for cx, cy in clients[1:]:
+            c.dot(cx, cy, 6, fill=GRAY["bold"])
+            if t > 0.4:
+                c.text(cx, cy + 18, "waiting…", size=9.5, weight="Medium", fill=FAINT, anchor="mm")
+        if t > 0.75:
+            c.text(db[0] + db[2] / 2, db[1] - 22, "one query", size=11, weight="Semibold", fill=MINT["bold"], anchor="mm")
+        c.footer("sync=true lets one caller refill the entry while the rest queue for the same result.", MINT, step=2, total=3)
+        frames.append(c.img)
+
+    save_gif(frames, out("cache-stampede.gif"), frame_ms=60)
+
+
+# ---------------------------------------------------------------------------
+# 10 — Dual-write problem vs. the transactional outbox
+# ---------------------------------------------------------------------------
+def build_outbox():
+    frames = []
+    svc = (130, 260, 200, 90)
+    dbA = (450, 160, 200, 90)
+    kafkaA = (450, 380, 200, 90)
+    dbB = (450, 160, 200, 90)
+    outboxB = (450, 380, 200, 90)
+    kafkaB = (760, 270, 200, 90)
+
+    def wrong_base(c):
+        c.header("10", "Dual write: a crash between two commits", CORAL)
+        c.card(*svc, fill=SKY["soft"], line=SKY["bold"], r=10)
+        c.text(svc[0] + svc[2] / 2, svc[1] + svc[3] / 2, "OrderService", size=13, weight="Semibold", fill=SKY["ink"], anchor="mm")
+        c.card(*dbA, fill=GRAY["soft"], line=GRAY["bold"], r=10)
+        c.text(dbA[0] + dbA[2] / 2, dbA[1] + dbA[3] / 2, "Postgres: order row", size=12, weight="Semibold", fill=INK, anchor="mm")
+        c.card(*kafkaA, fill=GRAY["soft"], line=GRAY["bold"], r=10)
+        c.text(kafkaA[0] + kafkaA[2] / 2, kafkaA[1] + kafkaA[3] / 2, "Kafka: OrderPlaced", size=12, weight="Semibold", fill=INK, anchor="mm")
+
+    # SCENE 1 — DB commit succeeds, crash before Kafka publish
+    seg1 = [((svc[0] + svc[2], svc[1] + svc[3] / 2), (dbA[0], dbA[1] + dbA[3] / 2))]
+    seg2 = [((svc[0] + svc[2], svc[1] + svc[3] / 2), (kafkaA[0], kafkaA[1] + kafkaA[3] / 2))]
+    for t in eseq(50):
+        c = Canvas(style="playful"); wrong_base(c)
+        p1 = min(1.0, t * 1.6)
+        c.glow(*seg_point(seg1, p1), MINT["bold"])
+        if p1 >= 1.0:
+            c.card(*dbA, fill=MINT["soft"], line=MINT["bold"], r=10)
+            c.text(dbA[0] + dbA[2] / 2, dbA[1] + dbA[3] / 2, "Postgres: order row ✓", size=12, weight="Semibold", fill=MINT["ink"], anchor="mm")
+        p2 = max(0.0, min(1.0, t * 1.6 - 1.0))
+        if p2 > 0:
+            c.glow(*seg_point(seg2, min(p2, 0.55)), CORAL["bold"])
+        if t > 0.85:
+            c.text(600, 300, "✗ CRASH", size=20, weight="Heavy", fill=CORAL["bold"], anchor="mm")
+        c.footer("The DB commit lands. The process dies before the Kafka publish goes out.", CORAL, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — outbox: one local transaction writes both rows atomically, then a relay ships it
+    tx = (dbB[0] - 24, dbB[1] - 24, 248, (outboxB[1] + outboxB[3]) - dbB[1] + 48)
+    for t in eseq(50):
+        c = Canvas(style="playful")
+        c.header("10", "Fixed: the transactional outbox", MINT)
+        c.card(*svc, fill=SKY["soft"], line=SKY["bold"], r=10)
+        c.text(svc[0] + svc[2] / 2, svc[1] + svc[3] / 2, "OrderService", size=13, weight="Semibold", fill=SKY["ink"], anchor="mm")
+        lit = mix(HAIR, MINT["bold"], min(1.0, t * 2))
+        c.card(*tx, fill=None, line=lit, width=3, r=16, shadow=False)
+        c.text(tx[0] + 14, tx[1] - 10, "ONE transaction", size=11, weight="Semibold", fill=MINT["bold"], anchor="lm")
+        c.card(*dbB, fill=MINT["soft"] if t > 0.15 else GRAY["soft"], line=MINT["bold"], r=10)
+        c.text(dbB[0] + dbB[2] / 2, dbB[1] + dbB[3] / 2, "order row", size=12, weight="Semibold", fill=MINT["ink"], anchor="mm")
+        c.card(*outboxB, fill=MINT["soft"] if t > 0.15 else GRAY["soft"], line=MINT["bold"], r=10)
+        c.text(outboxB[0] + outboxB[2] / 2, outboxB[1] + outboxB[3] / 2, "outbox row", size=12, weight="Semibold", fill=MINT["ink"], anchor="mm")
+        c.card(*kafkaB, fill=MINT["soft"] if t > 0.7 else GRAY["soft"], line=MINT["bold"] if t > 0.7 else GRAY["bold"], r=10)
+        c.text(kafkaB[0] + kafkaB[2] / 2, kafkaB[1] + kafkaB[3] / 2, "Kafka: OrderPlaced", size=12, weight="Semibold", fill=(MINT["ink"] if t > 0.7 else INK), anchor="mm")
+        if t > 0.55:
+            relay_t = min(1.0, (t - 0.55) / 0.35)
+            px, py = seg_point([((outboxB[0] + outboxB[2], outboxB[1] + outboxB[3] / 2), (kafkaB[0], kafkaB[1] + kafkaB[3] / 2))], relay_t)
+            c.glow(px, py, TANG["bold"])
+            c.tag(outboxB[0] + outboxB[2] + 10, outboxB[1] + outboxB[3] / 2 - 26, "relay polls outbox")
+        c.footer("Both rows commit atomically; a relay ships the outbox row afterward, at least once.", MINT, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("transactional-outbox.gif"), frame_ms=68)
+
+
+# ---------------------------------------------------------------------------
+# 11 — Test-context caching: matching config reuses one context
+# ---------------------------------------------------------------------------
+def build_context_cache():
+    frames = []
+    tests = [("Test A", "ctx: {web=MOCK,\nprofiles=[test]}", 1), ("Test B", "ctx: {web=MOCK,\nprofiles=[test]}", 1),
+              ("Test C", "ctx: {web=RANDOM_PORT}", 2), ("Test D", "ctx: {web=MOCK} +\n@DirtiesContext", 1)]
+    tx = [150, 400, 650, 900]
+    ty = 150
+
+    def base(c):
+        c.header("11", "The test-context cache", GRAPE)
+        for i, (name, fp, _) in enumerate(tests):
+            c.card(tx[i] - 90, ty, 180, 90, fill=SKY["soft"], line=SKY["bold"], r=10)
+            c.text(tx[i], ty + 24, name, size=13, weight="Semibold", fill=SKY["ink"], anchor="mm")
+            c.text(tx[i], ty + 58, fp, size=9.5, weight="Regular", fill=SUB, anchor="mm")
+        c.card(300, 420, 500, 100, fill="#F3F5F8", line=HAIR, r=12, shadow=False)
+        c.text(550, 400, "context cache", size=11, weight="Medium", fill=SUB, anchor="mm")
+
+    ctx_slots = {}
+
+    def draw_contexts(c, built, active_idx=None):
+        slots_x = {1: 420, 2: 660}
+        for cid, x in slots_x.items():
+            if cid in built:
+                fade = built[cid]
+                fill = mix("#F3F5F8", MINT["soft"], fade)
+                c.card(x - 80, 440, 160, 60, fill=fill, line=mix(HAIR, MINT["bold"], fade), r=10, shadow=False)
+                c.text(x, 470, f"Context #{cid}", size=12, weight="Semibold", fill=mix(SUB, MINT["ink"], fade), anchor="mm")
+
+    # SCENE 1 — A builds ctx 1 (spinner), B reuses it instantly, C builds ctx 2, D dirties its own
+    built = {}
+    for t in eseq(70):
+        c = Canvas(style="playful"); base(c)
+        # A: 0.0-0.3 build context 1
+        if t < 0.3:
+            built[1] = t / 0.3 * 0.6
+            c.dashed(tx[0], ty + 90, 420, 440, fill=SKY["bold"], dash=6, gap=5)
+        else:
+            built[1] = 1.0
+        draw_contexts(c, built)
+        # B: 0.3-0.4 reuse instantly (green flash, no build)
+        if 0.3 <= t < 0.5:
+            c.dashed(tx[1], ty + 90, 420, 440, fill=MINT["bold"], dash=6, gap=5)
+            c.text(tx[1], ty + 100, "reused ✓", size=10.5, weight="Bold", fill=MINT["bold"], anchor="mm")
+        # C: 0.4-0.7 build context 2 (different fingerprint)
+        if t >= 0.4:
+            built[2] = min(1.0, (t - 0.4) / 0.3)
+            if built[2] < 1.0:
+                c.dashed(tx[2], ty + 90, 660, 440, fill=TANG["bold"], dash=6, gap=5)
+        draw_contexts(c, built)
+        # D: 0.7-1.0 uses ctx 1 then dirties it
+        if t >= 0.7:
+            c.dashed(tx[3], ty + 90, 420, 440, fill=SKY["bold"], dash=6, gap=5)
+            crumble = (t - 0.7) / 0.3
+            if crumble > 0.3:
+                built[1] = max(0.15, 1.0 - crumble)
+                c.text(tx[3], ty + 100, "…then @DirtiesContext discards it", size=9.5, weight="Medium", fill=CORAL["bold"], anchor="mm")
+        draw_contexts(c, built)
+        c.footer("Same fingerprint, same cached context — a difference (or @DirtiesContext) builds a new one.", GRAPE, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — count-up comparison: 2 contexts / fast suite vs 4 contexts / slow suite
+    for t in eseq(46):
+        c = Canvas(style="playful")
+        c.header("11", "Why the same suite runs in 8s one day, 22s the next", GRAPE)
+        good_n = tween(0, 2, t)
+        bad_n = tween(0, 4, t)
+        good_time = tween(0, 8, t)
+        bad_time = tween(0, 22, t)
+        c.card(200, 220, 280, 200, fill=MINT["soft"], line=MINT["bold"], r=14)
+        c.text(340, 260, "standardized config", size=12, weight="Semibold", fill=MINT["ink"], anchor="mm")
+        c.text(340, 320, f"{int(round(good_n))} contexts built", size=16, weight="Bold", fill=MINT["bold"], anchor="mm")
+        c.text(340, 360, f"{good_time:.0f}s suite", size=20, weight="Heavy", fill=MINT["bold"], anchor="mm")
+        c.card(560, 220, 280, 200, fill=CORAL["soft"], line=CORAL["bold"], r=14)
+        c.text(700, 260, "config drift + @DirtiesContext", size=12, weight="Semibold", fill=CORAL["ink"], anchor="mm")
+        c.text(700, 320, f"{int(round(bad_n))} contexts built", size=16, weight="Bold", fill=CORAL["bold"], anchor="mm")
+        c.text(700, 360, f"{bad_time:.0f}s suite", size=20, weight="Heavy", fill=CORAL["bold"], anchor="mm")
+        c.footer("Every new context is a full Spring Boot startup — treat config as a shared resource.", GRAPE, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("test-context-cache.gif"), frame_ms=68)
+
+
+# ---------------------------------------------------------------------------
+# 13 — Circuit breaker: closed -> open -> half-open
+# ---------------------------------------------------------------------------
+def build_circuit_breaker():
+    frames = []
+    nodes = {"CLOSED": (220, 320), "OPEN": (520, 150), "HALF-OPEN": (820, 320)}
+    dep = (520, 480)
+
+    def base(c, active, fail_frac=0.0):
+        c.header("13", "Circuit breaker: closed → open → half-open", INDIGO)
+        for name, (x, y) in nodes.items():
+            on = (name == active)
+            fill = mix("#FFFFFF", INDIGO["soft"], 1.0) if on else "#FFFFFF"
+            line = INDIGO["bold"] if on else HAIR
+            c.circle(x, y, 62, fill=fill, line=line, width=3)
+            c.text(x, y, name, size=13, weight="Bold", fill=(INDIGO["ink"] if on else FAINT), anchor="mm")
+        c.arrow(nodes["CLOSED"][0] + 55, nodes["CLOSED"][1] - 40, nodes["OPEN"][0] - 55, nodes["OPEN"][1] + 30, fill=HAIR)
+        c.arrow(nodes["OPEN"][0] + 55, nodes["OPEN"][1] + 30, nodes["HALF-OPEN"][0] - 55, nodes["HALF-OPEN"][1] - 40, fill=HAIR)
+        c.arrow(nodes["HALF-OPEN"][0] - 20, nodes["HALF-OPEN"][1] + 55, nodes["CLOSED"][0] + 20, nodes["CLOSED"][1] + 55, fill=HAIR)
+        c.icon_db(dep[0], dep[1], 90, GRAY["bold"])
+        c.text(dep[0], dep[1] + 56, "downstream dependency", size=10.5, weight="Medium", fill=SUB, anchor="mm")
+        if fail_frac > 0:
+            c.card(nodes["CLOSED"][0] - 70, nodes["CLOSED"][1] + 90, 140, 14, fill="#FFFFFF", line=HAIR, r=7, shadow=False)
+            c.card(nodes["CLOSED"][0] - 70, nodes["CLOSED"][1] + 90, 140 * min(1, fail_frac), 14, fill=CORAL["bold"], line=None, r=7, shadow=False)
+            c.text(nodes["CLOSED"][0], nodes["CLOSED"][1] + 118, "failure rate", size=9.5, weight="Medium", fill=SUB, anchor="mm")
+
+    # SCENE 1 — CLOSED: healthy calls flow through
+    for t in eseq(34):
+        c = Canvas(style="playful"); base(c, "CLOSED")
+        px, py = seg_point([((nodes["CLOSED"][0], nodes["CLOSED"][1] + 62), (dep[0] - 60, dep[1] - 30))], t)
+        c.glow(px, py, MINT["bold"])
+        c.footer("Closed: calls pass through; failures are just being counted.", MINT, step=0, total=3)
+        frames.append(c.img)
+
+    # SCENE 2 — failures climb past threshold -> trips OPEN, calls now rejected instantly
+    for t in eseq(40):
+        c = Canvas(style="playful"); base(c, "CLOSED" if t < 0.7 else "OPEN", fail_frac=min(1.0, t * 1.3))
+        if t >= 0.7:
+            c.text(nodes["OPEN"][0], nodes["OPEN"][1] - 90, "fallback()", size=12, weight="Semibold", fill=CORAL["bold"], anchor="mm")
+        c.footer("Past the failure threshold, the breaker trips OPEN — calls fail fast, no network round-trip.", CORAL, step=1, total=3)
+        frames.append(c.img)
+
+    # SCENE 3 — wait duration elapses -> HALF-OPEN trial calls -> success closes the loop
+    for t in eseq(46):
+        c = Canvas(style="playful")
+        active = "OPEN" if t < 0.35 else "HALF-OPEN"
+        base(c, active)
+        if t >= 0.35:
+            trial_t = min(1.0, (t - 0.35) / 0.35)
+            px, py = seg_point([((nodes["HALF-OPEN"][0], nodes["HALF-OPEN"][1] + 62), (dep[0] + 60, dep[1] - 20))], trial_t)
+            c.glow(px, py, TANG["bold"])
+        if t >= 0.75:
+            c.text((nodes["HALF-OPEN"][0] + nodes["CLOSED"][0]) / 2, nodes["CLOSED"][1] + 80, "✓ recovered", size=12, weight="Bold", fill=MINT["bold"], anchor="mm")
+        c.footer("Half-open lets a few trial calls through; success closes the loop, failure reopens it.", INDIGO, step=2, total=3)
+        frames.append(c.img)
+
+    save_gif(frames, out("circuit-breaker.gif"), frame_ms=65)
+
+
+# ---------------------------------------------------------------------------
+# 15 — Layered Docker images: only the changed layer re-pushes
+# ---------------------------------------------------------------------------
+def build_layers():
+    frames = []
+    wrong_layer = (150, 220, 260, 120)
+    right_layers = [
+        (620, 160, 260, 56, "deps: 280MB", GRAY),
+        (620, 222, 260, 56, "spring-boot-loader", GRAY),
+        (620, 284, 260, 56, "snapshot-deps", GRAY),
+        (620, 346, 260, 56, "application: 200KB", TANG),
+    ]
+
+    def base(c):
+        c.header("15", "Layer by volatility, not one fat COPY", TANG)
+        c.tag(wrong_layer[0] + 40, wrong_layer[1] - 22, "WRONG — one COPY app.jar")
+        c.tag(right_layers[0][0] + 40, right_layers[0][1] - 22, "RIGHT — spring-boot:layertools")
+
+    # SCENE 1 — a one-line code edit triggers a rebuild in both images
+    for t in eseq(50):
+        c = Canvas(style="playful"); base(c)
+        pulse = mix(HAIR, CORAL["bold"], min(1.0, t * 2))
+        c.card(*wrong_layer, fill=mix(GRAY["soft"], CORAL["soft"], min(1.0, t * 1.6)), line=pulse, r=12)
+        c.text(wrong_layer[0] + wrong_layer[2] / 2, wrong_layer[1] + wrong_layer[3] / 2, "app.jar — 300MB", size=13, weight="Semibold", fill=INK, anchor="mm")
+        for i, (x, y, w, h, label, pal) in enumerate(right_layers):
+            is_top = (i == 3)
+            fill = mix(pal["soft"], CORAL["soft"], min(1.0, t * 1.6)) if is_top else pal["soft"]
+            line = mix(pal["bold"], CORAL["bold"], min(1.0, t * 1.6)) if is_top else HAIR
+            c.card(x, y, w, h, fill=fill, line=line, r=8, shadow=False)
+            c.text(x + w / 2, y + h / 2, label, size=11.5, weight="Semibold", fill=INK, anchor="mm")
+        if t > 0.5:
+            c.text(wrong_layer[0] + wrong_layer[2] / 2, wrong_layer[1] - 40, "✎ one-line code change", size=11, weight="Medium", fill=SUB, anchor="mm")
+        c.footer("The same edit hits both images — watch what each one has to re-push.", TANG, step=0, total=2)
+        frames.append(c.img)
+
+    # SCENE 2 — upload counters: 300MB slow vs 200KB fast
+    for t in eseq(50):
+        c = Canvas(style="playful"); base(c)
+        c.card(*wrong_layer, fill=CORAL["soft"], line=CORAL["bold"], r=12)
+        c.text(wrong_layer[0] + wrong_layer[2] / 2, wrong_layer[1] + 34, "app.jar", size=13, weight="Semibold", fill=CORAL["ink"], anchor="mm")
+        wrong_mb = tween(0, 300, min(1.0, t))
+        c.text(wrong_layer[0] + wrong_layer[2] / 2, wrong_layer[1] + 78, f"{wrong_mb:.0f} MB pushed", size=15, weight="Bold", fill=CORAL["bold"], anchor="mm")
+        for i, (x, y, w, h, label, pal) in enumerate(right_layers):
+            is_top = (i == 3)
+            fill = MINT["soft"] if is_top else pal["soft"]
+            line = MINT["bold"] if is_top else HAIR
+            c.card(x, y, w, h, fill=fill, line=line, r=8, shadow=False)
+            txt = label if not is_top else f"application — {tween(0, 200, min(1.0, t * 3)):.0f}KB pushed"
+            c.text(x + w / 2, y + h / 2, txt, size=11, weight="Semibold", fill=(MINT["ink"] if is_top else FAINT), anchor="mm")
+            if not is_top:
+                c.text(x + w + 14, y + h / 2, "cached", size=9.5, weight="Medium", fill=FAINT, anchor="lm")
+        c.footer("300MB re-pushed vs. 200KB — the dependency layers never move again.", MINT, step=1, total=2)
+        frames.append(c.img)
+
+    save_gif(frames, out("docker-layers.gif"), frame_ms=65)
+
+
 BUILDERS = {
     "autoconfig": build_autoconfig,
     "ioc": build_ioc,
@@ -425,6 +932,14 @@ BUILDERS = {
     "security": build_security,
     "observ": build_observ,
     "startup": build_startup,
+    "config": build_config,
+    "dto": build_dto,
+    "rollback": build_rollback,
+    "stampede": build_cache_stampede,
+    "outbox": build_outbox,
+    "contextcache": build_context_cache,
+    "circuitbreaker": build_circuit_breaker,
+    "layers": build_layers,
 }
 
 if __name__ == "__main__":

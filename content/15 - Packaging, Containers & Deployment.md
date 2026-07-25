@@ -26,6 +26,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[03 - Configuration, Profiles & Externalized Config]], [[12 - Actuator, Metrics & Observability]], [[14 - Performance, AOT & Native Images]]
 
+![[docker-layers.gif|720]]
+
+*One fat COPY re-pushes the whole jar on every code change; layering by volatility means a one-line edit only re-pushes the application layer — kilobytes, not hundreds of megabytes.*
+
 ---
 
 ## 1. The executable (fat) jar: nested layout, not a shaded uber-jar

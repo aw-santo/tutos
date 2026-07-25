@@ -22,6 +22,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[05 - Web Layer & Embedded Servers - MVC vs WebFlux]], [[08 - Spring Security]], [[13 - Resilience & Production Readiness]]
 
+![[dto-vs-entity.gif|720]]
+
+*The same request body bound two ways: an entity has no defense against an over-posted field, a DTO simply doesn't have one to bind.*
+
 ---
 
 ## 1. `@RestController` vs `@Controller` + `@ResponseBody`

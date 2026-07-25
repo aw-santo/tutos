@@ -43,19 +43,19 @@ You don't master Spring Boot by memorizing annotations — you master it by unde
 |---|--------|--------------|:---:|--------|
 | 01 | [[01 - Spring Boot Fundamentals & Auto-Configuration]] | starters, `@SpringBootApplication`, how auto-config decides which beans to create | 🎞️ | `ready` |
 | 02 | [[02 - IoC Container, Beans & Dependency Injection]] | ApplicationContext, bean scopes, lifecycle, injection styles, proxies | 🎞️ | `ready` |
-| 03 | [[03 - Configuration, Profiles & Externalized Config]] | property sources, `@ConfigurationProperties`, profiles, relaxed binding | | `ready` |
-| 04 | [[04 - Building REST APIs]] | `@RestController`, validation, content negotiation, error handling, versioning | | `ready` |
+| 03 | [[03 - Configuration, Profiles & Externalized Config]] | property sources, `@ConfigurationProperties`, profiles, relaxed binding | 🎞️ | `ready` |
+| 04 | [[04 - Building REST APIs]] | `@RestController`, validation, content negotiation, error handling, versioning | 🎞️ | `ready` |
 | 05 | [[05 - Web Layer & Embedded Servers - MVC vs WebFlux]] | filter chain, DispatcherServlet, Servlet vs reactive, virtual threads | 🎞️ | `ready` |
 | 06 | [[06 - Data Access with Spring Data JPA]] | repositories, entities, the persistence context, N+1, pagination | 🎞️ | `ready` |
-| 07 | [[07 - Transactions & Data Consistency]] | `@Transactional`, propagation, isolation, rollback rules, self-invocation | | `ready` |
+| 07 | [[07 - Transactions & Data Consistency]] | `@Transactional`, propagation, isolation, rollback rules, self-invocation | 🎞️ | `ready` |
 | 08 | [[08 - Spring Security]] | the security filter chain, authN vs authZ, JWT/OAuth2, method security | 🎞️ | `ready` |
-| 09 | [[09 - Caching]] | the cache abstraction, `@Cacheable`, Redis/Caffeine, invalidation, stampede | | `ready` |
-| 10 | [[10 - Messaging, Events & Async]] | app events, `@Async`, `@Scheduled`, Kafka/RabbitMQ, at-least-once delivery | | `ready` |
-| 11 | [[11 - Testing Spring Boot Applications]] | test slices, `@SpringBootTest`, MockMvc, Testcontainers, the test pyramid | | `ready` |
+| 09 | [[09 - Caching]] | the cache abstraction, `@Cacheable`, Redis/Caffeine, invalidation, stampede | 🎞️ | `ready` |
+| 10 | [[10 - Messaging, Events & Async]] | app events, `@Async`, `@Scheduled`, Kafka/RabbitMQ, at-least-once delivery | 🎞️ | `ready` |
+| 11 | [[11 - Testing Spring Boot Applications]] | test slices, `@SpringBootTest`, MockMvc, Testcontainers, the test pyramid | 🎞️ | `ready` |
 | 12 | [[12 - Actuator, Metrics & Observability]] | endpoints, Micrometer, tracing, health, the observability pipeline | 🎞️ | `ready` |
-| 13 | [[13 - Resilience & Production Readiness]] | retries, circuit breakers, timeouts, bulkheads, graceful shutdown | | `ready` |
+| 13 | [[13 - Resilience & Production Readiness]] | retries, circuit breakers, timeouts, bulkheads, graceful shutdown | 🎞️ | `ready` |
 | 14 | [[14 - Performance, AOT & Native Images]] | AOT processing, GraalVM native, CRaC, virtual threads, startup vs throughput | 🎞️ | `ready` |
-| 15 | [[15 - Packaging, Containers & Deployment]] | executable/layered jars, buildpacks, Docker, config in Kubernetes | | `ready` |
+| 15 | [[15 - Packaging, Containers & Deployment]] | executable/layered jars, buildpacks, Docker, config in Kubernetes | 🎞️ | `ready` |
 
 ---
 

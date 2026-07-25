@@ -22,6 +22,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[02 - IoC Container, Beans & Dependency Injection]], [[06 - Data Access with Spring Data JPA]], [[10 - Messaging, Events & Async]]
 
+![[transaction-rollback.gif|720]]
+
+*A checked exception thrown mid-method does not roll back by default — the debit commits, the credit never runs, and the money is simply gone.*
+
 ---
 
 ## 1. What a transaction is, and where its boundary belongs

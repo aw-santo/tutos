@@ -21,6 +21,10 @@ created: 2026-07-09
 
 Related: [[00 - Spring Boot Index]], [[01 - Spring Boot Fundamentals & Auto-Configuration]], [[15 - Packaging, Containers & Deployment]]
 
+![[config-precedence.gif|720]]
+
+*Property-source precedence: Spring checks each source top-down and stops at the first one that sets the key — an OS env var beats a profile file every time, silently.*
+
 | Concern | `@Value("${...}")` | `@ConfigurationProperties` |
 |---|---|---|
 | Binding | one key → one field | a whole prefix → a typed object graph |
