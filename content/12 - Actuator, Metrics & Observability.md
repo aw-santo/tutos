@@ -1,5 +1,5 @@
 ---
-title: Actuator, Metrics & Observability
+title: 12 - Actuator, Metrics & Observability
 tags:
   - spring
   - spring-boot

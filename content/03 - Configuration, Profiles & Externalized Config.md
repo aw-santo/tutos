@@ -1,5 +1,5 @@
 ---
-title: Configuration, Profiles & Externalized Config
+title: 03 - Configuration, Profiles & Externalized Config
 tags:
   - spring
   - spring-boot

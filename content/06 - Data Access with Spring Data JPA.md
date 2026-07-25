@@ -1,5 +1,5 @@
 ---
-title: Data Access with Spring Data JPA
+title: 06 - Data Access with Spring Data JPA
 tags:
   - spring
   - spring-boot

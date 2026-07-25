@@ -1,5 +1,5 @@
 ---
-title: IoC Container, Beans & Dependency Injection
+title: 02 - IoC Container, Beans & Dependency Injection
 tags:
   - spring
   - spring-boot

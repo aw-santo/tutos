@@ -1,5 +1,5 @@
 ---
-title: Spring Boot Fundamentals & Auto-Configuration
+title: 01 - Spring Boot Fundamentals & Auto-Configuration
 tags:
   - spring
   - spring-boot
